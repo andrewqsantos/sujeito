@@ -38,7 +38,7 @@ export default function Home({ content }: ContentProps) {
           <section className={styles.ctaText} >
             <h1>{content.title}</h1>
             <span>{content.titleContent}</span>
-            <a target="_blank" href={content.linkAction}>
+            <a href={content.linkAction}>
               <button>
                 COMEÇAR AGORA!
               </button>
@@ -77,7 +77,7 @@ export default function Home({ content }: ContentProps) {
           <Image src={techsImage} alt="Tecnologias"/>
           <h2>Mais de <span className={styles.alunos}>15 mil</span> já levaram sua carreira ao proximo nivel.</h2>
           <span>E você vai perder a chance de evolui de uma vez por todas?</span>
-          <a target="_blank" href={content.linkAction}>
+          <a href={content.linkAction}>
             <button>ACESSAR TURMA!</button>
           </a>
         </div>
