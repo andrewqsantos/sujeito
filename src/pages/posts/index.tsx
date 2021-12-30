@@ -1,12 +1,36 @@
+import { GetStaticProps } from 'next';
+import { useState } from 'react';
+
 import Head from 'next/head';
+
 import styles from './styles.module.scss';
 import Link from 'next/link';
+
 import Image from 'next/image';
-import thumbImg from '../../../public/images/thumb.png';
-import {FiChevronLeft, FiChevronsLeft, FiChevronRight, FiChevronsRight} from 'react-icons/fi';
+
+import { getPrismicClient } from '../../services/prismicConfiguration';
+import Prismic from '@prismicio/client';
+import { RichText } from 'prismic-dom';
+
+import { FiChevronLeft, FiChevronsLeft, FiChevronRight, FiChevronsRight } from 'react-icons/fi';
 
 
-export default function Posts(){
+type Post = {
+    slug: string;
+    title: string;
+    cover: string;
+    description: string;
+    updateAt: string
+}
+
+interface PostsProps{
+    posts: Post[];
+}
+
+export default function Posts({ posts: postsBlogs }: PostsProps){
+    
+    const [posts, setPosts] = useState(postsBlogs || [] );
+
     return(
         <>
             <Head>
@@ -14,20 +38,24 @@ export default function Posts(){
             </Head>
             <main className={styles.container}>
                 <div className={styles.posts}>
-                    <Link href="/">
-                        <a>
-                            <Image 
-                                src={thumbImg} 
-                                alt="Post título 1"
-                                width={720}
-                                height={410}
-                                quality={90}
-                            />
-                            <strong>Criando meu primeiro aplicativo</strong>
-                            <time>14 JULHO 2021</time>
-                            <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ad provident, laboriosam voluptas ab facilis animi dignissimos consequatur, cum non maxime mollitia fuga quisquam unde delectus! Velit pariatur laudantium ipsum dicta!</p>
-                        </a>
-                    </Link>
+                    {posts.map(post => (
+                        <Link key={post.slug} href={`/posts/${post.slug}`}>
+                            <a key={post.slug}>
+                                <Image 
+                                    src={post.cover} 
+                                    alt={post.title}
+                                    width={720}
+                                    height={410}
+                                    quality={90}
+                                    placeholder="blur"
+                                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mN03A8AAUcBAopGx9YAAAAASUVORK5CYII="
+                                />
+                                <strong>{post.title}</strong>
+                                <time>{post.updateAt}</time>
+                                <p>{post.description}</p>
+                            </a>
+                        </Link>
+                    ))}
 
                     <div className={styles.buttonNavigate}>
                         <div>
@@ -52,4 +80,39 @@ export default function Posts(){
             </main>
         </>
     )
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+    const prismic = getPrismicClient();
+
+    const response = await prismic.query([
+        Prismic.Predicates.at('document.type', 'post')
+    ], {
+        orderings: '[document.last_publication_date desc]', // Ordenar pelo mais recente
+        fetch: ['post.title', 'post.description', 'post.cover'],
+        pageSize: 3
+    })
+
+    //console.log(JSON.stringify(response,null,2))
+
+    const posts = response.results.map( post => {
+        return{
+            slug: post.uid,
+            title: RichText.asText(post.data.title),
+            description: post.data.description.find(content => content.type === 'paragraph')?.text ?? '',
+            cover: post.data.cover.url,
+            updateAt: new Date(post.last_publication_date).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            })
+        }
+    })
+
+    return{
+        props:{
+            posts
+        },
+        revalidate: 60 * 30 // Atualiza a cada 30 minutos
+    }
 }
